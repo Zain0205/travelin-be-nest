@@ -6,15 +6,282 @@
 
 generator client {
   provider = "prisma-client-js"
+  output = "../prisma/generated"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id    Int     @id @default(autoincrement())
-  email String  @unique
-  name  String?
+  id                  Int       @id @default(autoincrement())
+  name                String
+  email               String    @unique
+  password            String
+  phone               String?
+  role                Role
+  isVerified          Boolean   @default(false)
+  verificationToken   String?   @unique
+  verificationExpires DateTime?
+  createdAt           DateTime  @default(now())
+
+  // Relations
+  travelPackages TravelPackage[] @relation("AgentTravelPackages")
+  hotels         Hotel[]         @relation("AgentHotels")
+  flights        Flight[]        @relation("AgentFlights")
+  bookings       Booking[]
+  reviews        Review[]
+  wishlists      Wishlist[]
+  testimonials   Testimonial[]
+  articles       Article[]       @relation("AdminArticles")
+  notifications  Notification[]
+  sentChats      LiveChat[]      @relation("SentMessages")
+  receivedChats  LiveChat[]      @relation("ReceivedMessages")
+}
+
+model TravelPackage {
+  id          Int      @id @default(autoincrement())
+  agentId     Int
+  title       String
+  description String
+  location    String
+  price       Decimal  @db.Decimal(10, 2)
+  duration    Int
+  quota       Int
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  thumbnail   String?
+  createdAt   DateTime @default(now())
+
+  agent     User           @relation("AgentTravelPackages", fields: [agentId], references: [id])
+  images    PackageImage[]
+  bookings  Booking[]
+  reviews   Review[]
+  wishlists Wishlist[]
+}
+
+model PackageImage {
+  id        Int       @id @default(autoincrement())
+  packageId Int
+  fileUrl   String
+  type      MediaType
+
+  package TravelPackage @relation(fields: [packageId], references: [id])
+}
+
+model Hotel {
+  id            Int      @id @default(autoincrement())
+  agentId       Int
+  name          String
+  location      String
+  description   String
+  pricePerNight Decimal  @db.Decimal(10, 2)
+  thumbnail     String?
+  createdAt     DateTime @default(now())
+
+  agent         User           @relation("AgentHotels", fields: [agentId], references: [id])
+  bookingHotels BookingHotel[]
+}
+
+model Flight {
+  id            Int      @id @default(autoincrement())
+  agentId       Int
+  airlineName   String
+  origin        String
+  destination   String
+  departureTime DateTime
+  arrivalTime   DateTime
+  price         Decimal  @db.Decimal(10, 2)
+  createdAt     DateTime @default(now())
+
+  agent          User            @relation("AgentFlights", fields: [agentId], references: [id])
+  bookingFlights BookingFlight[]
+}
+
+model Booking {
+  id            Int           @id @default(autoincrement())
+  userId        Int
+  packageId     Int?
+  bookingDate   DateTime      @default(now())
+  travelDate    DateTime
+  totalPrice    Decimal       @db.Decimal(10, 2)
+  status        BookingStatus
+  paymentStatus PaymentStatus
+  type          BookingType   @default(package)
+
+  user           User            @relation(fields: [userId], references: [id])
+  travelPackage  TravelPackage?  @relation(fields: [packageId], references: [id])
+  bookingHotels  BookingHotel[]
+  bookingFlights BookingFlight[]
+  payments       Payment[]
+  reschedules    Reschedule[]
+}
+
+model BookingHotel {
+  id           Int      @id @default(autoincrement())
+  bookingId    Int
+  hotelId      Int
+  checkInDate  DateTime
+  checkOutDate DateTime
+  nights       Int
+  totalPrice   Decimal  @db.Decimal(10, 2)
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  hotel   Hotel   @relation(fields: [hotelId], references: [id])
+}
+
+model BookingFlight {
+  id            Int     @id @default(autoincrement())
+  bookingId     Int
+  flightId      Int
+  passengerName String
+  seatClass     String
+  totalPrice    Decimal @db.Decimal(10, 2)
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  flight  Flight  @relation(fields: [flightId], references: [id])
+}
+
+model Payment {
+  id          Int           @id @default(autoincrement())
+  bookingId   Int
+  method      PaymentMethod
+  amount      Decimal       @db.Decimal(10, 2)
+  paymentDate DateTime?
+  proofUrl    String?
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+model Reschedule {
+  id            Int              @id @default(autoincrement())
+  bookingId     Int
+  requestedDate DateTime
+  status        RescheduleStatus
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  packageId Int
+  rating    Int
+  comment   String
+  createdAt DateTime @default(now())
+
+  user    User          @relation(fields: [userId], references: [id])
+  package TravelPackage @relation(fields: [packageId], references: [id])
+}
+
+model Wishlist {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  packageId Int
+  createdAt DateTime @default(now())
+
+  user    User          @relation(fields: [userId], references: [id])
+  package TravelPackage @relation(fields: [packageId], references: [id])
+}
+
+model Testimonial {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  content   String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Article {
+  id        Int      @id @default(autoincrement())
+  adminId   Int
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+
+  admin User @relation("AdminArticles", fields: [adminId], references: [id])
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Coupon {
+  id              Int      @id @default(autoincrement())
+  code            String   @unique
+  discountPercent Int
+  expiryDate      DateTime
+  usageLimit      Int
+  usedCount       Int      @default(0)
+}
+
+model LiveChat {
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  message    String
+  sentAt     DateTime @default(now())
+
+  sender   User @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+// ENUMS
+
+enum Role {
+  admin
+  customer
+  agent
+}
+
+enum MediaType {
+  image
+  video
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  rejected
+  refunded
+  rescheduled
+}
+
+enum PaymentStatus {
+  unpaid
+  paid
+}
+
+enum BookingType {
+  package
+  hotel
+  flight
+  custom
+}
+
+enum PaymentMethod {
+  bank_transfer
+  e_wallet
+  credit_card
+}
+
+enum RescheduleStatus {
+  pending
+  approved
+  rejected
+}
+
+enum NotificationType {
+  booking
+  payment
+  review
 }
