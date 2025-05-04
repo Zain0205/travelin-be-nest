@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output = "../prisma/generated"
 }
 
 datasource db {
@@ -27,6 +26,7 @@ model User {
   createdAt           DateTime  @default(now())
 
   // Relations
+  refreshTokens  RefreshToken[]
   travelPackages TravelPackage[] @relation("AgentTravelPackages")
   hotels         Hotel[]         @relation("AgentHotels")
   flights        Flight[]        @relation("AgentFlights")
@@ -38,6 +38,15 @@ model User {
   notifications  Notification[]
   sentChats      LiveChat[]      @relation("SentMessages")
   receivedChats  LiveChat[]      @relation("ReceivedMessages")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique @db.VarChar(512)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 model TravelPackage {
@@ -272,6 +281,7 @@ enum PaymentMethod {
   bank_transfer
   e_wallet
   credit_card
+  qris
 }
 
 enum RescheduleStatus {
