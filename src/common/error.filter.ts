@@ -21,7 +21,7 @@ export class ErrorFilter implements ExceptionFilter {
       });
     } else {
       response.status(500).json({
-        errors: 'Internal server error',
+        errors: exception.message,
       });
     }
   }
