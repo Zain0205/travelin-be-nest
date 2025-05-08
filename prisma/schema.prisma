@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output = "../prisma/generated"
 }
 
 datasource db {
@@ -74,7 +75,7 @@ model PackageImage {
   id        Int       @id @default(autoincrement())
   packageId Int
   fileUrl   String
-  type      MediaType
+  type      String 
 
   package TravelPackage @relation(fields: [packageId], references: [id])
 }
