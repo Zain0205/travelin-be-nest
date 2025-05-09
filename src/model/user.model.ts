@@ -17,3 +17,25 @@ export class UserResponse{
   email: string;
   token?: string;
 }
+
+export class LoginRequest {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+export class RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export class TokenResponse {
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn?: number;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+  }
+}
