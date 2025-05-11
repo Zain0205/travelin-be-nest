@@ -4,8 +4,14 @@ import {
   Body,
   UseGuards,
   UseInterceptors,
-  UploadedFile,
   UploadedFiles,
+  Get,
+  Query,
+  Param,
+  ParseIntPipe,
+  Delete,
+  Req,
+  Patch,
 } from '@nestjs/common';
 
 import { TravelPackageService } from './travel-package.service';
@@ -13,16 +19,21 @@ import { RolesGuard } from 'src/user/roles.guard';
 import { Roles } from 'src/user/decorator/roles.decorator';
 import { Role } from '@prisma/client';
 import { CurrentUser } from 'src/user/decorator/current-user.decorator';
-import { CreateTravelPackage } from 'src/model/travel-package.model';
+import {
+  CreateTravelPackage,
+  Pagination,
+} from 'src/model/travel-package.model';
 import { JwtAuthGuard } from 'src/user/jwt-auth.guard';
 import { FileFieldsUploadInterceptor } from 'src/common/file-upload.interceptor';
+import { AuthGuard } from '@nestjs/passport';
+import { Request } from 'express';
 
 @Controller('/api/travel-package')
 export class TravelPackageController {
   constructor(private readonly travelPackageService: TravelPackageService) {}
 
   @Post('/create')
-  // @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.admin, Role.agent)
   @UseInterceptors(
     FileFieldsUploadInterceptor([
@@ -61,5 +72,76 @@ export class TravelPackageController {
     };
 
     return this.travelPackageService.createTravelPackage(user.id, packageData);
+  }
+
+  @Get()
+  async getAllPackage(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('title') title?: string,
+    @Query('location') location?: string,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('minDuration') minDuration?: string,
+    @Query('maxDuration') maxDuration?: string,
+    @Query('agentId') agentId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const pagination = {
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 10,
+    };
+
+    const filters = {
+      title,
+      location,
+      minPrice: minPrice ? parseFloat(minPrice) : undefined,
+      maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
+      minDuration: minDuration ? parseInt(minDuration) : undefined,
+      maxDuration: maxDuration ? parseInt(maxDuration) : undefined,
+      agentId: agentId ? parseInt(agentId) : undefined,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    };
+
+    return this.travelPackageService.getAllTravelPackages(pagination, filters);
+  }
+
+  @Get('/:id')
+  async getPackageById(@Param('id', ParseIntPipe) id: number) {
+    return this.travelPackageService.getTravelPackageById(id);
+  }
+
+  @Patch('/update/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.agent, Role.admin)
+  @UseInterceptors(
+    FileFieldsUploadInterceptor([
+      { name: 'thumbnail', maxCount: 1 },
+      { name: 'packageImages', maxCount: 10 },
+    ]),
+  )
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+    @Body() updatePackageDto: any,
+    @UploadedFiles()
+    files: {
+      thumbnail?: Express.Multer.File[];
+      packageImages?: Express.Multer.File[];
+    },
+  ) {}
+
+  @Delete('/delete/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.admin, Role.agent)
+  async delete(
+    @CurrentUser() user: { id: number; role: Role },
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+  ) {
+    const agentId = user.id;
+    return this.travelPackageService.deleteTravelPackage(id, agentId);
   }
 }
