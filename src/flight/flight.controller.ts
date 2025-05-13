@@ -28,8 +28,8 @@ export class FlightController {
   constructor(private flightService: FlightService) {}
 
   @Post('/create')
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles(Role.admin, Role.agent)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.admin, Role.agent)
   @UseInterceptors(
     FileFieldsUploadInterceptor([{ name: 'thumbnail', maxCount: 1 }]),
   )
@@ -52,9 +52,7 @@ export class FlightController {
       arrivalTime: new Date(request.arrivalTime),
     };
 
-    console.log('Flight Data:', flightData);
-
-    return this.flightService.createFlight(1, flightData);
+    return this.flightService.createFlight(user.id, flightData);
   }
 
   @Get()
