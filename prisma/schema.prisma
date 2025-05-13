@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output = "../prisma/generated"
 }
 
 datasource db {
@@ -72,10 +71,10 @@ model TravelPackage {
 }
 
 model PackageImage {
-  id        Int       @id @default(autoincrement())
+  id        Int    @id @default(autoincrement())
   packageId Int
   fileUrl   String
-  type      String 
+  type      String
 
   package TravelPackage @relation(fields: [packageId], references: [id])
 }
@@ -92,6 +91,16 @@ model Hotel {
 
   agent         User           @relation("AgentHotels", fields: [agentId], references: [id])
   bookingHotels BookingHotel[]
+  images        HotelImage[]
+}
+
+model HotelImage {
+  id      Int    @id @default(autoincrement())
+  hotelId Int
+  fileUrl String
+  type    String
+
+  hotel Hotel @relation(fields: [hotelId], references: [id], onDelete: Cascade)
 }
 
 model Flight {
@@ -104,6 +113,7 @@ model Flight {
   arrivalTime   DateTime
   price         Decimal  @db.Decimal(10, 2)
   createdAt     DateTime @default(now())
+  thumnail      String?
 
   agent          User            @relation("AgentFlights", fields: [agentId], references: [id])
   bookingFlights BookingFlight[]
