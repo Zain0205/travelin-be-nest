@@ -38,7 +38,7 @@ export class TravelPackageService {
 
       if (images && images.length > 0) {
         await prisma.packageImage.createMany({
-          data: images.map((image) => ({
+          data: images.map((image: any) => ({
             packageId: newTravelPackage.id,
             fileUrl: image.fileUrl,
             type: image.type,
@@ -224,19 +224,15 @@ export class TravelPackageService {
         },
       });
 
-      // Handle images if provided
       if (images && images.length > 0) {
-        // Get existing images for later file deletion
         const existingImages = await prisma.packageImage.findMany({
           where: { packageId: id },
         });
 
-        // Delete existing images from database
         await prisma.packageImage.deleteMany({
           where: { packageId: id },
         });
 
-        // Add new images
         await prisma.packageImage.createMany({
           data: images.map((image) => ({
             packageId: id,
