@@ -305,4 +305,5 @@ enum NotificationType {
   booking
   payment
   review
+  chat
 }
