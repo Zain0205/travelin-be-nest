@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Snap, CoreApi } from 'midtrans-client';
-import { PrismaService } from 'src/common/prisma.service';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -12,7 +11,6 @@ export class PaymentService {
 
   constructor(
     private configService: ConfigService,
-    private prisma: PrismaService,
   ) {
     const isProduction =
       this.configService.get<string>('NODE_ENV') === 'production';
