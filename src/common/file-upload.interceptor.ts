@@ -14,7 +14,6 @@ interface FieldConfig {
   maxCount?: number;
 }
 
-// Interceptor untuk multiple fields
 export function FileFieldsUploadInterceptor(
   fields: FieldConfig[],
 ): Type<NestInterceptor> {
