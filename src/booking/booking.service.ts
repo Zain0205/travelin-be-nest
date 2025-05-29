@@ -99,7 +99,6 @@ export class BookingService {
         throw new NotFoundException(`Hotel with ID ${hotel.hotelId} not found`);
       }
 
-      // Calculate price for this hotel
       const hotelPrice =
         parseFloat(hotelData.pricePerNight.toString()) * hotel.nights;
       totalPrice += hotelPrice;
@@ -113,7 +112,6 @@ export class BookingService {
       });
     }
 
-    // Create booking
     const booking = await this.prisma.booking.create({
       data: {
         userId,
@@ -398,5 +396,61 @@ export class BookingService {
 
   async getBookingById(id: number, userId?: number, role?: string) {
     const whereClause: any = { id };
+
+    if (role === 'customer') {
+      whereClause.userId = userId;
+    } else if (role === 'agent') {
+      whereClause.OR = [
+        {
+          travelPackage: {
+            agentId: userId,
+          },
+        },
+        {
+          bookingHotels: {
+            some: {
+              hotel: {
+                agentId: userId,
+              },
+            },
+          },
+        },
+        {
+          bookingFlights: {
+            some: {
+              flight: {
+                agentId: userId,
+              },
+            },
+          },
+        },
+      ];
+    }
+
+     const booking = await this.prisma.booking.findFirst({
+      where: whereClause,
+      include: {
+        user: true,
+        travelPackage: true,
+        bookingHotels: {
+          include: {
+            hotel: true,
+          },
+        },
+        bookingFlights: {
+          include: {
+            flight: true,
+          },
+        },
+        payments: true,
+        reschedules: true,
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException(`Booking with ID ${id} not found`);
+    }
+
+    return booking;
   }
 }
