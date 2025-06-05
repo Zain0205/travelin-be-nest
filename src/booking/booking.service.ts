@@ -5,7 +5,11 @@ import {
 } from '@nestjs/common';
 import { BookingType } from 'prisma/generated';
 import { PrismaService } from 'src/common/prisma.service';
-import { BookingInput, GetBookingsQuery } from 'src/model/booking.model';
+import {
+  BookingInput,
+  GetBookingsQuery,
+  RescheduleInput,
+} from 'src/model/booking.model';
 
 @Injectable()
 export class BookingService {
@@ -427,7 +431,7 @@ export class BookingService {
       ];
     }
 
-     const booking = await this.prisma.booking.findFirst({
+    const booking = await this.prisma.booking.findFirst({
       where: whereClause,
       include: {
         user: true,
@@ -452,5 +456,146 @@ export class BookingService {
     }
 
     return booking;
+  }
+
+  async requestReschedule(data: RescheduleInput, userId: number) {
+    const { bookingId, requestedDate } = data;
+
+    const booking = await this.prisma.booking.findFirst({
+      where: {
+        id: bookingId,
+        userId,
+      },
+    });
+
+    if (!booking) {
+      throw new NotFoundException(
+        `Booking with ID ${bookingId} not found or does not belong to user ${userId}`,
+      );
+    }
+
+    const reschedule = await this.prisma.reschedule.create({
+      data: {
+        bookingId,
+        requestedDate,
+        status: 'pending',
+      },
+    });
+
+    await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: 'pending',
+      },
+    });
+
+    // TODO: send notification
+
+    return {
+      reschedule,
+      // notification
+    };
+  }
+
+  async handleRescheduleRequest(
+    id: number,
+    aprove: boolean,
+    userId: number,
+    role: string,
+  ) {
+    const reschedule = await this.prisma.reschedule.findUnique({
+      where: { id },
+      include: {
+        booking: {
+          include: {
+            travelPackage: true,
+            bookingHotels: {
+              include: {
+                hotel: true,
+              },
+            },
+            bookingFlights: {
+              include: {
+                flight: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!reschedule) {
+      throw new NotFoundException(`Reschedule request with ID ${id} not found`);
+    }
+
+    if (role == 'customer') {
+      throw new BadRequestException(
+        'Customers cannot approve or reject reschedule requests',
+      );
+    }
+
+    if (role == 'agent') {
+      const booking = reschedule.booking;
+      let isAgentBooking = false;
+
+      if (booking.travelPackage && booking.travelPackage.agentId == userId) {
+        isAgentBooking = true;
+      } else {
+        const hasHotelFromAgent = booking.bookingHotels?.some(
+          (bh) => bh.hotel.agentId == userId,
+        );
+        const hasFlightFromAgent = booking.bookingFlights?.some(
+          (bh) => bh.flight.agentId == userId,
+        );
+
+        isAgentBooking = hasHotelFromAgent || hasFlightFromAgent;
+      }
+
+      if (!isAgentBooking) {
+        throw new BadRequestException(
+          'You can only handle reschedule requests for bookings you are associated with as an agent.',
+        );
+      }
+    }
+
+    const newStatus = aprove ? 'approved' : 'rejected';
+
+    await this.prisma.reschedule.update({
+      where: { id },
+      data: {
+        status: newStatus,
+      },
+    });
+
+    let bookingStatus = 'pending';
+
+    if (aprove) {
+      await this.prisma.booking.update({
+        where: { id: reschedule.bookingId },
+        data: {
+          travelDate: reschedule.requestedDate,
+          status: 'confirmed',
+        },
+      });
+
+      bookingStatus = 'confirmed';
+    } else {
+      await this.prisma.booking.update({
+        where: { id: reschedule.bookingId },
+        data: {
+          status: 'confirmed',
+        },
+      });
+
+      bookingStatus = 'confirmed';
+    }
+
+    // TODO: send notification
+
+    return {
+      success: true,
+      status: newStatus,
+      bookingStatus
+    }
   }
 }
