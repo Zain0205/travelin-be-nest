@@ -42,7 +42,7 @@ export class PaymentService {
       parseFloat(booking.totalPrice.toString())
     ) {
       throw new BadRequestException(
-        `Payment amount must match the booking total price: ${booking.totalPrice}`,
+        `Payment amount must match the booking price: ${booking.totalPrice}`,
       );
     }
 
@@ -72,22 +72,22 @@ export class PaymentService {
           quantity: 1,
         },
       ],
-      callbackUrl: `${this.configService.get<string>('FRONT_END_URL')}/payment/callback`,
+      callbackUrl: `${this.configService.get<string>('FRONTEND_URL')}/payment/callback`,
     });
 
     const payment = await this.prisma.payment.create({
-       data: {
+      data: {
         bookingId,
         method,
         amount,
-        paymentDate: null, 
+        paymentDate: null,
         proofUrl: data.proofUrl,
       },
-    })
+    });
 
     return {
       payment,
       midtrans: midtransResponse,
-    }
+    };
   }
 }
