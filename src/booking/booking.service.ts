@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { BookingStatus } from '@prisma/client';
 import { BookingType } from 'prisma/generated';
 import { PrismaService } from 'src/common/prisma.service';
 import {
@@ -456,6 +457,68 @@ export class BookingService {
     }
 
     return booking;
+  }
+
+  async updateBookingStatus(id: number, status: BookingStatus, userId: number, role: string) {
+    // Check if booking exists
+    const booking = await this.getBookingById(id, userId, role);
+    
+    if (role === 'customer' && booking.userId !== userId) {
+      throw new BadRequestException('You can only update your own bookings');
+    }
+
+    if (role === 'agent') {
+      let isAgentBooking = false;
+      
+      if (booking.travelPackage && booking.travelPackage.agentId === userId) {
+        isAgentBooking = true;
+      }
+      
+      if (!isAgentBooking) {
+        const hasHotelFromAgent = booking.bookingHotels?.some(bh => bh.hotel.agentId === userId);
+        const hasFlightFromAgent = booking.bookingFlights?.some(bf => bf.flight.agentId === userId);
+        
+        if (!hasHotelFromAgent && !hasFlightFromAgent) {
+          throw new BadRequestException('You can only update bookings for your packages/hotels/flights');
+        }
+      }
+    }
+
+    if (role === 'customer' && status !== "rejected") {
+      throw new BadRequestException('Customers can only cancel their bookings');
+    }
+
+    if (status === "rejected" && booking.paymentStatus === "paid") {
+      if (booking.packageId) {
+        await this.prisma.travelPackage.update({
+          where: { id: booking.packageId },
+          data: { quota: { increment: 1 } },
+        });
+      }
+    }
+
+    const updatedBooking = await this.prisma.booking.update({
+      where: { id },
+      data: { status },
+      include: {
+        user: true,
+        travelPackage: true,
+        bookingHotels: {
+          include: {
+            hotel: true,
+          },
+        },
+        bookingFlights: {
+          include: {
+            flight: true,
+          },
+        },
+      },
+    });
+
+    // Send notification about status change
+
+    return updatedBooking;
   }
 
   async requestReschedule(data: RescheduleInput, userId: number) {
