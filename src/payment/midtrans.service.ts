@@ -26,7 +26,7 @@ export class MidtransService {
     });
   }
 
-   async createTransaction(params: {
+  async createTransaction(params: {
     orderId: string;
     amount: number;
     customerDetails: {
@@ -42,7 +42,8 @@ export class MidtransService {
     }>;
     callbackUrl?: string;
   }) {
-    const { orderId, amount, customerDetails, itemDetails, callbackUrl } = params;
+    const { orderId, amount, customerDetails, itemDetails, callbackUrl } =
+      params;
 
     const transactionDetails = {
       order_id: orderId,
@@ -109,41 +110,5 @@ export class MidtransService {
       .digest('hex');
 
     return hash === signature_key;
-  }
-
-  mapTransactionStatus(midtransStatus: string): 'paid' | 'unpaid' | 'failed' {
-    switch (midtransStatus) {
-      case 'capture':
-      case 'settlement':
-        return 'paid';
-      case 'pending':
-        return 'unpaid';
-      case 'deny':
-      case 'cancel':
-      case 'expire':
-      case 'failure':
-        return 'failed';
-      default:
-        return 'unpaid';
-    }
-  }
-
-  mapBookingStatus(
-    midtransStatus: string,
-  ): 'confirmed' | 'pending' | 'rejected' {
-    switch (midtransStatus) {
-      case 'capture':
-      case 'settlement':
-        return 'confirmed';
-      case 'pending':
-        return 'pending';
-      case 'deny':
-      case 'cancel':
-      case 'expire':
-      case 'failure':
-        return 'rejected';
-      default:
-        return 'pending';
-    }
   }
 }
