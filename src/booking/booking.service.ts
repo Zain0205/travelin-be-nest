@@ -460,7 +460,6 @@ export class BookingService {
   }
 
   async updateBookingStatus(id: number, status: BookingStatus, userId: number, role: string) {
-    // Check if booking exists
     const booking = await this.getBookingById(id, userId, role);
     
     if (role === 'customer' && booking.userId !== userId) {
