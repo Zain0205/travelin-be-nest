@@ -32,7 +32,7 @@ export class NotificationController {
   @Post('/:id/mark-as-read')
   @Roles('costumer', 'admin', 'agent')
   async markAsRead(@Param('id', ParseIntPipe) notificationId: number, @CurrentUser() user: { id: number, role: Role }) {
-    const notification = await this.notificationService.markAsRead(notificationId, user.sub);
+    const notification = await this.notificationService.markAsRead(notificationId, user.id);
 
     const unreadCount = await this.notificationService.getUnreadCount(user.id);
     this.notificationGateway.sendNotifToUser(user.id, {
