@@ -6,9 +6,10 @@ import { HotelModule } from './hotel/hotel.module';
 import { FlightModule } from './flight/flight.module';
 import { BookingModule } from './booking/booking.module';
 import { PaymentModule } from './payment/payment.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
-  imports: [CommonModule, UserModule, TravelPackageModule, HotelModule, FlightModule, BookingModule, PaymentModule],
+  imports: [CommonModule, UserModule, TravelPackageModule, HotelModule, FlightModule, BookingModule, PaymentModule, NotificationModule],
   controllers: [],
   providers: [],
 })
