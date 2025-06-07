@@ -13,7 +13,7 @@ export class FlightService {
   constructor(
     private prisma: PrismaService,
     private validationService: ValidationService,
-  ) {}
+  ) { }
 
   async createFlight(agentId: number, request: CreateFlight) {
     const data = this.validationService.validate(
