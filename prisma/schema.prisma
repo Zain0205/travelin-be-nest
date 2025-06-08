@@ -26,18 +26,20 @@ model User {
   createdAt           DateTime  @default(now())
 
   // Relations
-  refreshTokens  RefreshToken[]
-  travelPackages TravelPackage[] @relation("AgentTravelPackages")
-  hotels         Hotel[]         @relation("AgentHotels")
-  flights        Flight[]        @relation("AgentFlights")
-  bookings       Booking[]
-  reviews        Review[]
-  wishlists      Wishlist[]
-  testimonials   Testimonial[]
-  articles       Article[]       @relation("AdminArticles")
-  notifications  Notification[]
-  sentChats      LiveChat[]      @relation("SentMessages")
-  receivedChats  LiveChat[]      @relation("ReceivedMessages")
+  refreshTokens    RefreshToken[]
+  travelPackages   TravelPackage[] @relation("AgentTravelPackages")
+  hotels           Hotel[]         @relation("AgentHotels")
+  flights          Flight[]        @relation("AgentFlights")
+  bookings         Booking[]
+  reviews          Review[]
+  wishlists        Wishlist[]
+  testimonials     Testimonial[]
+  articles         Article[]       @relation("AdminArticles")
+  notifications    Notification[]
+  sentChats        LiveChat[]      @relation("SentMessages")
+  receivedChats    LiveChat[]      @relation("ReceivedMessages")
+  refunds          Refund[]
+  processedRefunds Refund[]        @relation("ProcessedRefunds")
 }
 
 model RefreshToken {
@@ -120,15 +122,18 @@ model Flight {
 }
 
 model Booking {
-  id            Int           @id @default(autoincrement())
-  userId        Int
-  packageId     Int?
-  bookingDate   DateTime      @default(now())
-  travelDate    DateTime
-  totalPrice    Decimal       @db.Decimal(10, 2)
-  status        BookingStatus
-  paymentStatus PaymentStatus
-  type          BookingType   @default(package)
+  id                 Int           @id @default(autoincrement())
+  userId             Int
+  packageId          Int?
+  bookingDate        DateTime      @default(now())
+  travelDate         DateTime
+  totalPrice         Decimal       @db.Decimal(10, 2)
+  status             BookingStatus
+  paymentStatus      PaymentStatus
+  type               BookingType   @default(package)
+  refund             Refund?
+  cancelledAt        DateTime?
+  cancellationReason String?
 
   user           User            @relation(fields: [userId], references: [id])
   travelPackage  TravelPackage?  @relation(fields: [packageId], references: [id])
@@ -255,6 +260,25 @@ model LiveChat {
   receiver User @relation("ReceivedMessages", fields: [receiverId], references: [id])
 }
 
+model Refund {
+  id           Int           @id @default(autoincrement())
+  bookingId    Int           @unique
+  userId       Int
+  amount       Decimal       @db.Decimal(10, 2)
+  reason       String?
+  status       RefundStatus  @default(pending)
+  processedBy  Int? // Admin/Agent yang memproses
+  processedAt  DateTime?
+  refundMethod RefundMethod?
+  refundProof  String? // URL bukti refund
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  booking   Booking @relation(fields: [bookingId], references: [id])
+  user      User    @relation(fields: [userId], references: [id])
+  processor User?   @relation("ProcessedRefunds", fields: [processedBy], references: [id])
+}
+
 // ENUMS
 
 enum Role {
@@ -272,6 +296,7 @@ enum BookingStatus {
   pending
   confirmed
   rejected
+  cancelled
   refunded
   rescheduled
 }
@@ -306,4 +331,18 @@ enum NotificationType {
   payment
   review
   chat
+}
+
+enum RefundStatus {
+  pending
+  approved
+  rejected
+  completed
+}
+
+enum RefundMethod {
+  bank_transfer
+  e_wallet
+  credit_card
+  original_payment
 }
