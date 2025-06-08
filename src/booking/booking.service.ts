@@ -11,10 +11,16 @@ import {
   GetBookingsQuery,
   RescheduleInput,
 } from 'src/model/booking.model';
+import { NotificationGateway } from 'src/notification/notification.gateway';
+import { NotificationService } from 'src/notification/notification.service';
 
 @Injectable()
 export class BookingService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationService: NotificationService,
+    private notificationGateway: NotificationGateway
+  ) { }
 
   async createBooking(data: BookingInput, userId: number) {
     let totalPrice = 0;
@@ -36,6 +42,17 @@ export class BookingService {
       default:
         throw new BadRequestException('Invalid booking type');
     }
+
+    const notification = this.notificationService.notifyBookingCreated(userId, booking.id)
+
+    await this.notificationGateway.sendNotifToUser(userId, {
+      ...notification,
+      booking: {
+        id: booking.id,
+        type: booking.type,
+        totalPrice: booking.totalPrice
+      }
+    })
 
     return booking;
   }
@@ -460,23 +477,24 @@ export class BookingService {
   }
 
   async updateBookingStatus(id: number, status: BookingStatus, userId: number, role: string) {
+    let notification: any;
     const booking = await this.getBookingById(id, userId, role);
-    
+
     if (role === 'customer' && booking.userId !== userId) {
       throw new BadRequestException('You can only update your own bookings');
     }
 
     if (role === 'agent') {
       let isAgentBooking = false;
-      
+
       if (booking.travelPackage && booking.travelPackage.agentId === userId) {
         isAgentBooking = true;
       }
-      
+
       if (!isAgentBooking) {
         const hasHotelFromAgent = booking.bookingHotels?.some(bh => bh.hotel.agentId === userId);
         const hasFlightFromAgent = booking.bookingFlights?.some(bf => bf.flight.agentId === userId);
-        
+
         if (!hasHotelFromAgent && !hasFlightFromAgent) {
           throw new BadRequestException('You can only update bookings for your packages/hotels/flights');
         }
@@ -515,7 +533,21 @@ export class BookingService {
       },
     });
 
-    // Send notification about status change
+    if (status === 'confirmed') {
+      notification = await this.notificationService.notifyBookingConfirmed(updatedBooking.id, id)
+    } else {
+      notification = await this.notificationService.notifyBookingRejected(updatedBooking.id, id)
+    }
+
+    if (notification) {
+      await this.notificationGateway.sendNotifToUser(updatedBooking.userId, {
+        ...notification,
+        booking: {
+          id: updatedBooking.id,
+          status: updatedBooking.status,
+        },
+      });
+    }
 
     return updatedBooking;
   }
