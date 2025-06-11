@@ -265,12 +265,13 @@ model Refund {
   bookingId    Int           @unique
   userId       Int
   amount       Decimal       @db.Decimal(10, 2)
+  originalAmount Decimal     @db.Decimal(10, 2) 
   reason       String?
   status       RefundStatus  @default(pending)
-  processedBy  Int? // Admin/Agent yang memproses
+  processedBy  Int? 
   processedAt  DateTime?
   refundMethod RefundMethod?
-  refundProof  String? // URL bukti refund
+  refundProof  String? 
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
