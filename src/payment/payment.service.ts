@@ -251,7 +251,6 @@ export class PaymentService {
     }
   }
 
-  // Additional helper methods
   async getPaymentHistory(userId: number) {
     return this.prisma.payment.findMany({
       where: {
