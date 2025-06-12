@@ -89,11 +89,42 @@ export class MidtransService {
 
   async cancelTransaction(orderId: string) {
     try {
-      const status = await this.coreApi.transaction.cancel(orderId);
-      return status;
+      const cancel = await this.coreApi.transaction.cancel(orderId)
+      this.logger.log(
+        `Successfully cancelled transaction for order ${orderId}`,
+        JSON.stringify(cancel)
+      )
     } catch (err) {
       this.logger.error(
         `Failed to cancel transaction for order ${orderId}`,
+        err,
+      );
+      throw err;
+    }
+  }
+
+  async refundTransaction(orderId: string, amount?: number) {
+    try {
+      const refundData: any = {
+        order_id: orderId,
+        reason: `Customer request refund`
+      }
+
+      if (amount) {
+        refundData.amount = amount;
+      }
+
+      const refund = await this.coreApi.transaction.refund(refundData)
+
+      this.logger.log(
+        `Successfully processed refund for order ${orderId}`,
+        JSON.stringify(refund),
+      );
+
+      return refund;
+    } catch (err) {
+      this.logger.error(
+        `Failed to refund transaction for order ${orderId}`,
         err,
       );
       throw err;
