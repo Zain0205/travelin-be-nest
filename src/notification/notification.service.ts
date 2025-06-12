@@ -139,14 +139,6 @@ export class NotificationService {
     });
   }
 
-  async notifyRefundApproved(userId: number, bookingId: number) {
-    return await this.createNotification({
-      userId,
-      message: `Refund for booking #${bookingId} has been approved`,
-      type: NotificationType.payment,
-    });
-  }
-
   async notifyRescheduleApproved(userId: number, bookingId: number) {
     return await this.createNotification({
       userId,
@@ -161,5 +153,51 @@ export class NotificationService {
       message: `Reschedule request for booking #${bookingId} has been rejected`,
       type: NotificationType.booking,
     });
+  }
+
+  async notifyRefundRequested(userId: number, bookingId: number, bookingType: string) {
+    const typeLabel = this.getBookingTypeLabel(bookingType);
+    return this.createNotification({
+      userId,
+      message: `Permintaan refund untuk booking ${typeLabel} #${bookingId} telah dikirim`,
+      type: 'booking',
+    });
+  }
+
+  async notifyRefundApproved(userId: number, bookingId: number, bookingType: string) {
+    const typeLabel = this.getBookingTypeLabel(bookingType);
+    return this.createNotification({
+      userId,
+      message: `Refund untuk booking ${typeLabel} #${bookingId} telah disetujui`,
+      type: 'payment',
+    });
+  }
+
+  async notifyRefundRejected(userId: number, bookingId: number, bookingType: string) {
+    const typeLabel = this.getBookingTypeLabel(bookingType);
+    return this.createNotification({
+      userId,
+      message: `Refund untuk booking ${typeLabel} #${bookingId} ditolak`,
+      type: 'payment',
+    });
+  }
+
+  async notifyBookingCancelled(userId: number, bookingId: number, bookingType: string) {
+    const typeLabel = this.getBookingTypeLabel(bookingType);
+    return this.createNotification({
+      userId,
+      message: `Booking ${typeLabel} #${bookingId} telah dibatalkan`,
+      type: 'booking',
+    });
+  }
+
+  private getBookingTypeLabel(bookingType: string): string {
+    const labels = {
+      package: 'Paket Wisata',
+      hotel: 'Hotel',
+      flight: 'Penerbangan',
+      custom: 'Custom',
+    };
+    return labels[bookingType] || 'Booking';
   }
 }
