@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -12,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { ValidationService } from 'src/common/validation.service';
+import { RefundService } from './refund.service';
 import { JwtAuthGuard } from 'src/user/jwt-auth.guard';
 import { RolesGuard } from 'src/user/roles.guard';
 import { Roles } from 'src/user/decorator/roles.decorator';
@@ -21,13 +23,15 @@ import {
   BookingQueryValidation,
   CreateBookingValidation,
 } from './booking.validation';
+import { CancelBookingValidation, ProcessRefundValidation, RefundQueryValidation, RefundValidation } from './refund.validation';
 
 @Controller('/api/booking')
 export class BookingController {
   constructor(
     private bookingService: BookingService,
     private validationService: ValidationService,
-  ) {}
+    private refundService: RefundService,
+  ) { }
 
   @Post('/create')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -117,5 +121,69 @@ export class BookingController {
       user.id,
       user.role,
     );
+  }
+
+  @Delete('/cancel/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('customer')
+  async cancelBooking(
+    @Param('id', ParseIntPipe) bookingId: number,
+    @Body() body: any,
+    @CurrentUser() user: { id: number, role: Role },
+  ) {
+    const data = await this.validationService.validate(CancelBookingValidation, {
+      ...body,
+      bookingId
+    })
+
+    return this.refundService.cancelBooking(data, user.id)
+  }
+
+  @Post('/refund')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('customer')
+  async requestRefund(
+    @Body() body: any,
+    @CurrentUser() user: { id: number; role: Role },
+  ) {
+    const data = this.validationService.validate(RefundValidation, body);
+    return this.refundService.requestRefund(data, user.id);
+  }
+
+  @Get('/refunds')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('customer', 'agent', 'admin')
+  async getRefunds(
+    @Query() query: any,
+    @CurrentUser() user: { id: number; role: Role },
+  ) {
+    const data = this.validationService.validate(RefundQueryValidation, query);
+    return this.refundService.getRefunds(data, user.id, user.role);
+  }
+
+  @Get('/refund/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('customer', 'agent', 'admin')
+  async getRefundById(
+    @Param('id', ParseIntPipe) refundId: number,
+    @CurrentUser() user: { id: number; role: Role },
+  ) {
+    return this.refundService.getRefundById(refundId, user.id, user.role);
+  }
+
+  @Put('/refund/:id/process')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'agent')
+  async processRefund(
+    @Param('id', ParseIntPipe) refundId: number,
+    @Body() body: any,
+    @CurrentUser() user: { id: number; role: Role },
+  ) {
+    const data = this.validationService.validate(ProcessRefundValidation, {
+      ...body,
+      refundId,
+    });
+
+    return this.refundService.processRefund(data, user.id);
   }
 }
