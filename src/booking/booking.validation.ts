@@ -37,16 +37,16 @@ export const CreatePaymentValidation = z.object({
 });
 
 export const BookingQueryValidation = z.object({
-  page: z.string().transform(val => parseInt(val) || 1).optional(),
-  limit: z.string().transform(val => parseInt(val) || 10).optional(),
-  status: z.nativeEnum(BookingStatus).optional(),
-  paymentStatus: z.nativeEnum(PaymentStatus).optional(),
-  type: z.nativeEnum(BookingType).optional(),
-  userId: z.string().transform(val => parseInt(val)).optional(),
-  agentId: z.string().transform(val => parseInt(val)).optional(),
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional()
+  page: z.string().optional().transform(val => val ? parseInt(val) : undefined),
+  limit: z.string().optional().transform(val => val ? parseInt(val) : undefined),
+  type: z.enum(['package', 'hotel', 'flight', 'custom']).optional(),
+  status: z.enum(['pending', 'confirmed', 'rejected', 'cancelled', 'refunded', 'rescheduled']).optional(),
+  paymentStatus: z.enum(['unpaid', 'paid', 'failed']).optional(),
+  startDate: z.string().optional(), // bisa .transform(val => new Date(val)) kalau ingin
+  endDate: z.string().optional(),
+  userId: z.string().optional().transform(val => val ? parseInt(val, 10) : undefined), // << tambahkan ini
 });
+
 
 export const UpdateBookingStatusValidation = z.object({
   status: z.nativeEnum(BookingStatus)
@@ -63,3 +63,4 @@ export const MidtransCallbackValidation = z.object({
   transaction_time: z.string(),
   fraud_status: z.string().optional()
 });
+

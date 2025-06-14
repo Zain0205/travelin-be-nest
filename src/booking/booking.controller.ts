@@ -24,6 +24,7 @@ import {
   CreateBookingValidation,
 } from './booking.validation';
 import { CancelBookingValidation, ProcessRefundValidation, RefundQueryValidation, RefundValidation } from './refund.validation';
+import { BookingInput } from 'src/model/booking.model';
 
 @Controller('/api/booking')
 export class BookingController {
@@ -41,7 +42,67 @@ export class BookingController {
     @CurrentUser() user: { id: number; role: Role },
   ) {
     const data = this.validationService.validate(CreateBookingValidation, body);
-    return this.bookingService.createBooking(data, user.id);
+
+    let bookingData: BookingInput;
+
+    switch (data.type) {
+      case "package":
+        if (typeof data.packageId !== 'number') {
+          throw new BadRequestException('packageId is required for package bookings');
+        }
+
+        bookingData = {
+          userId: user.id,
+          travelDate: new Date(data.travelDate),
+          type: 'package',
+          packageId: data.packageId,
+        };
+        break;
+
+      case 'hotel':
+        bookingData = {
+          userId: user.id,
+          travelDate: new Date(data.travelDate),
+          type: 'hotel',
+          hotels: (data.hotelBookings ?? []).map((item) => ({
+            hotelId: item.hotelId,
+            checkInDate: new Date(item.checkInDate),
+            checkOutDate: new Date(item.checkOutDate),
+            nights: item.nights,
+          })),
+        };
+        break;
+
+      case 'flight':
+        bookingData = {
+          userId: user.id,
+          travelDate: new Date(data.travelDate),
+          type: 'flight',
+          flights: data.flightBookings ?? [],
+        };
+        break;
+
+      case 'custom':
+        bookingData = {
+          userId: user.id,
+          travelDate: new Date(data.travelDate),
+          type: 'custom',
+          hotels: (data.hotelBookings ?? []).map((item) => ({
+            hotelId: item.hotelId,
+            checkInDate: new Date(item.checkInDate),
+            checkOutDate: new Date(item.checkOutDate),
+            nights: item.nights,
+          })),
+          flights: data.flightBookings ?? [],
+        };
+        break;
+
+      default:
+        throw new BadRequestException('Invalid booking type');
+    }
+
+    return this.bookingService.createBooking(bookingData, user.id);
+
   }
 
   @Get()
@@ -51,7 +112,10 @@ export class BookingController {
     @Query() query: any,
     @CurrentUser() user: { id: number; role: Role },
   ) {
-    const data = this.validationService.validate(BookingQueryValidation, query);
+    const data = this.validationService.validate(BookingQueryValidation as any, query) as any;
+    if (user.role === 'customer') {
+      data.userId = user.id as any;
+    }
     return this.bookingService.getBookings(data, user.id, user.role);
   }
 
@@ -131,7 +195,7 @@ export class BookingController {
     @Body() body: any,
     @CurrentUser() user: { id: number, role: Role },
   ) {
-    const data = await this.validationService.validate(CancelBookingValidation, {
+    const data = this.validationService.validate(CancelBookingValidation, {
       ...body,
       bookingId
     })
@@ -157,7 +221,7 @@ export class BookingController {
     @Query() query: any,
     @CurrentUser() user: { id: number; role: Role },
   ) {
-    const data = this.validationService.validate(RefundQueryValidation, query);
+    const data = this.validationService.validate(RefundQueryValidation as any, query) as any;
     return this.refundService.getRefunds(data, user.id, user.role);
   }
 
