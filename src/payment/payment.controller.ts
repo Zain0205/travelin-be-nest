@@ -23,7 +23,6 @@ export class PaymentController {
     return this.paymentService.processPayment(data, user.id);
   }
 
-  // Callback endpoint untuk Midtrans
   @Post('/callback')
   @HttpCode(HttpStatus.OK)
   async handlePaymentCallback(@Body() callbackData: any) {
