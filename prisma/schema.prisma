@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output = "./generated"
 }
 
 datasource db {
@@ -94,6 +95,7 @@ model Hotel {
   agent         User           @relation("AgentHotels", fields: [agentId], references: [id])
   bookingHotels BookingHotel[]
   images        HotelImage[]
+  Review        Review[]
 }
 
 model HotelImage {
@@ -119,6 +121,7 @@ model Flight {
 
   agent          User            @relation("AgentFlights", fields: [agentId], references: [id])
   bookingFlights BookingFlight[]
+  Review         Review[]
 }
 
 model Booking {
@@ -191,13 +194,22 @@ model Reschedule {
 model Review {
   id        Int      @id @default(autoincrement())
   userId    Int
-  packageId Int
+  packageId Int? // Make this optional
+  hotelId   Int? // Add this new field
+  flightId  Int? // Add this new field
   rating    Int
   comment   String
   createdAt DateTime @default(now())
 
-  user    User          @relation(fields: [userId], references: [id])
-  package TravelPackage @relation(fields: [packageId], references: [id])
+  user    User           @relation(fields: [userId], references: [id])
+  package TravelPackage? @relation(fields: [packageId], references: [id])
+  hotel   Hotel?         @relation(fields: [hotelId], references: [id]) // Add this
+  flight  Flight?        @relation(fields: [flightId], references: [id]) // Add this
+
+  @@index([packageId])
+  @@index([hotelId]) // Add this index
+  @@index([flightId]) // Add this index
+  @@index([userId])
 }
 
 model Wishlist {
@@ -261,19 +273,19 @@ model LiveChat {
 }
 
 model Refund {
-  id           Int           @id @default(autoincrement())
-  bookingId    Int           @unique
-  userId       Int
-  amount       Decimal       @db.Decimal(10, 2)
-  originalAmount Decimal     @db.Decimal(10, 2) 
-  reason       String?
-  status       RefundStatus  @default(pending)
-  processedBy  Int? 
-  processedAt  DateTime?
-  refundMethod RefundMethod?
-  refundProof  String? 
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id             Int           @id @default(autoincrement())
+  bookingId      Int           @unique
+  userId         Int
+  amount         Decimal       @db.Decimal(10, 2)
+  originalAmount Decimal       @db.Decimal(10, 2)
+  reason         String?
+  status         RefundStatus  @default(pending)
+  processedBy    Int?
+  processedAt    DateTime?
+  refundMethod   RefundMethod?
+  refundProof    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   booking   Booking @relation(fields: [bookingId], references: [id])
   user      User    @relation(fields: [userId], references: [id])
