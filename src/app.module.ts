@@ -8,9 +8,11 @@ import { BookingModule } from './booking/booking.module';
 import { PaymentModule } from './payment/payment.module';
 import { NotificationModule } from './notification/notification.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { TestimonialModule } from './testimonial/testimonial.module';
 
 @Module({
-  imports: [CommonModule, UserModule, TravelPackageModule, HotelModule, FlightModule, BookingModule, PaymentModule, NotificationModule, DashboardModule],
+  imports: [CommonModule, UserModule, TravelPackageModule, HotelModule, FlightModule, BookingModule, PaymentModule, NotificationModule, DashboardModule, ReviewsModule, TestimonialModule],
   controllers: [],
   providers: [],
 })
