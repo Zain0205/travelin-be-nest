@@ -10,9 +10,10 @@ import { NotificationModule } from './notification/notification.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { TestimonialModule } from './testimonial/testimonial.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
-  imports: [CommonModule, UserModule, TravelPackageModule, HotelModule, FlightModule, BookingModule, PaymentModule, NotificationModule, DashboardModule, ReviewsModule, TestimonialModule],
+  imports: [CommonModule, UserModule, TravelPackageModule, HotelModule, FlightModule, BookingModule, PaymentModule, NotificationModule, DashboardModule, ReviewsModule, TestimonialModule, ChatModule],
   controllers: [],
   providers: [],
 })
