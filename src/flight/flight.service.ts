@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/common/prisma.service';
 import { ValidationService } from 'src/common/validation.service';
-import { FlightValidation } from './flight.validation';
+// import { FlightValidation } from './flight.validation';
 import { CreateFlight } from 'src/model/flight.model';
 import { Prisma } from '@prisma/client';
 import { Pagination } from 'src/model/travel-package.model';
@@ -13,14 +13,9 @@ export class FlightService {
   constructor(
     private prisma: PrismaService,
     private validationService: ValidationService,
-  ) { }
+  ) {}
 
-  async createFlight(agentId: number, request: CreateFlight) {
-    const data = this.validationService.validate(
-      FlightValidation.CREATE,
-      request,
-    );
-
+  async createFlight(agentId: number, data: CreateFlight) {
     return this.prisma.$transaction(async (prisma) => {
       const newFlight = await prisma.flight.create({
         data: {
@@ -52,7 +47,7 @@ export class FlightService {
     });
   }
 
-  async getAllFlights(pagination: Pagination, filters: any) {
+  async getAllFlights(pagination: Pagination, filters: any, agentId?: number) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
 
@@ -80,7 +75,10 @@ export class FlightService {
       this.prisma.flight.findMany({
         skip,
         take: limit,
-        where: whereClause,
+        where: {
+          ...whereClause,
+          agentId: agentId? agentId : undefined, // Only filter by agentId if provided
+        },
         include: {
           agent: {
             select: {
@@ -136,7 +134,6 @@ export class FlightService {
     agentId: number,
     updateData: Partial<CreateFlight>,
   ) {
-    // Validate the flight exists and belongs to the agent
     const existingFlight = await this.prisma.flight.findUnique({
       where: { id },
     });
@@ -152,30 +149,29 @@ export class FlightService {
       );
     }
 
-    // Validate the update data
-    const validatedData = this.validationService.validate(
-      FlightValidation.UPDATE,
-      updateData,
-    );
+    // const validatedData = this.validationService.validate(
+    //   FlightValidation.UPDATE,
+    //   updateData,
+    // );
 
     return this.prisma.$transaction(async (prisma) => {
       // Update flight data
       const updatedFlight = await prisma.flight.update({
         where: { id },
         data: {
-          ...validatedData,
-          ...(validatedData.price && {
+          ...updateData,
+          ...(updateData.price && {
             price: new Prisma.Decimal(
-              typeof validatedData.price === 'string'
-                ? parseFloat(validatedData.price)
-                : validatedData.price,
+              typeof updateData.price === 'string'
+                ? parseFloat(updateData.price)
+                : updateData.price,
             ),
           }),
-          ...(validatedData.departureTime && {
-            departureTime: new Date(validatedData.departureTime),
+          ...(updateData.departureTime && {
+            departureTime: new Date(updateData.departureTime),
           }),
-          ...(validatedData.arrivalTime && {
-            arrivalTime: new Date(validatedData.arrivalTime),
+          ...(updateData.arrivalTime && {
+            arrivalTime: new Date(updateData.arrivalTime),
           }),
         },
       });

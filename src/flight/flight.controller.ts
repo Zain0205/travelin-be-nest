@@ -29,12 +29,12 @@ export class FlightController {
 
   @Post('/create')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.admin, Role.agent)
+  @Roles('agent', 'admin')
   @UseInterceptors(
     FileFieldsUploadInterceptor([{ name: 'thumbnail', maxCount: 1 }]),
   )
   async create(
-    @CurrentUser() user: { id: number; role: Role },
+    @CurrentUser() user: any,
     @Body() request: any,
     @UploadedFiles()
     files: {
@@ -52,11 +52,14 @@ export class FlightController {
       arrivalTime: new Date(request.arrivalTime),
     };
 
-    return this.flightService.createFlight(user.id, flightData);
+    return this.flightService.createFlight(user.sub, flightData);
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('agent', 'admin', "customer")
   async getAll(
+    @CurrentUser() user: any,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('airlineName') airlineName?: string,
@@ -74,7 +77,9 @@ export class FlightController {
       destination,
     };
 
-    return this.flightService.getAllFlights(pagination, filters);
+    const agentId = user.role === "agent" ? user.sub : undefined;
+
+    return this.flightService.getAllFlights(pagination, filters, agentId);
   }
 
   @Get('/:id')
@@ -84,12 +89,12 @@ export class FlightController {
 
   @Patch('/update/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.agent, Role.admin)
+  @Roles('agent', 'admin')
   @UseInterceptors(
     FileFieldsUploadInterceptor([{ name: 'thumbnail', maxCount: 1 }]),
   )
   async update(
-    @CurrentUser() user: { id: number; role: Role },
+    @CurrentUser() user: any,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateFlightDto: any,
     @UploadedFiles()
@@ -116,17 +121,17 @@ export class FlightController {
       }),
     };
 
-    return this.flightService.updateFlight(id, user.id, updateData);
+    return this.flightService.updateFlight(id, user.sub, updateData);
   }
 
   @Delete('/delete/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.admin, Role.agent)
   async delete(
-    @CurrentUser() user: { id: number; role: Role },
+    @CurrentUser() user: any,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    const agentId = user.id;
+    const agentId = user.sub;
     return this.flightService.deleteFlight(id, agentId);
   }
 }
