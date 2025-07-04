@@ -3,10 +3,9 @@ export interface CreateHotel {
   description: string;
   location: string;
   pricePerNight: number;
-  amenities: string[];
   thumbnail?: string;
   images?: {
     fileUrl: string;
     type: string;
-  }[]; 
+  }[];
 }

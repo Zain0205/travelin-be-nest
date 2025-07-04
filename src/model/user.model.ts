@@ -3,15 +3,13 @@ export class UserRegistrationRequest {
   email: string;
   password: string;
   role: string;
-  // verificationToken?: string;
-  // verificationExpires?: Date;
 }
 
 export class UserVerificationRequest {
   token: string;
 }
 
-export class UserResponse{
+export class UserResponse {
   username: string;
   name: string;
   email: string;
@@ -24,18 +22,21 @@ export class LoginRequest {
   rememberMe?: boolean;
 }
 
-export class RefreshTokenRequest {
-  refreshToken: string;
-}
-
 export class TokenResponse {
   accessToken: string;
-  refreshToken?: string;
   expiresIn?: number;
   user: {
     id: number;
     name: string;
     email: string;
     role: string;
-  }
+  };
+}
+
+export class UserProfile {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  isVerified: boolean;
 }
