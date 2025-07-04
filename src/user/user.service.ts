@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Request, Response } from 'express';
 
 import { PrismaService } from 'src/common/prisma.service';
 import { ValidationService } from 'src/common/validation.service';
@@ -12,7 +13,6 @@ import { EmailService } from 'src/common/email.service';
 
 import {
   LoginRequest,
-  RefreshTokenRequest,
   TokenResponse,
   UserRegistrationRequest,
   UserVerificationRequest,
@@ -21,7 +21,6 @@ import { UserValidation } from './user.validation';
 
 import { compare, hash } from 'bcrypt';
 import * as crypto from 'crypto';
-import { Response } from 'express';
 
 @Injectable()
 export class UserService {
@@ -81,7 +80,7 @@ export class UserService {
     };
   }
 
-  async login(request: LoginRequest, res: Response): Promise<any> {
+  async login(request: LoginRequest, res: Response): Promise<TokenResponse> {
     const loginRequest = this.validationService.validate(
       UserValidation.LOGIN,
       request,
@@ -94,7 +93,6 @@ export class UserService {
         email,
       },
     });
-
 
     if (!user) {
       throw new HttpException('User not found', 404);
@@ -116,48 +114,29 @@ export class UserService {
       sub: user.id,
       email: user.email,
       name: user.name,
-      roles: [user.role],
+      role: user.role,
     };
 
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, {
-      expiresIn: rememberMe
-        ? this.configService.get('JWT_REFRESH_EXPIRATION_LONG', "30d")
-        : this.configService.get('JWT_REFRESH_EXPIRATION', "7d"),
-    });
+    // Set token expiration based on rememberMe option
+    const tokenExpiration = rememberMe ? '30d' : '7d';
+    const cookieExpiration = rememberMe 
+      ? 30 * 24 * 60 * 60 * 1000  // 30 days
+      : 7 * 24 * 60 * 60 * 1000;  // 7 days
 
-    await this.prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
-        userId: user.id,
-        expiresAt: new Date(
-          Date.now() + (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000,
-        ),
-      },
+    const accessToken = this.jwtService.sign(payload, {
+      expiresIn: tokenExpiration,
     });
-
-    const accessTokenExpiration = rememberMe
-      ? 15 * 24 * 60 * 60 * 1000
-      : 15 * 60 * 1000;
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'strict',
-      maxAge: accessTokenExpiration,
-    });
-
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      sameSite: 'strict',
-      maxAge: (rememberMe ? 30 : 7) * 24 * 60 * 60 * 1000,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: cookieExpiration,
     });
 
     return {
       accessToken,
-      refreshToken,
-      expiresIn: Math.floor(accessTokenExpiration / 1000),
+      expiresIn: Math.floor(cookieExpiration / 1000),
       user: {
         id: user.id,
         name: user.name,
@@ -167,98 +146,8 @@ export class UserService {
     };
   }
 
-  async refreshToken(
-    request: RefreshTokenRequest,
-    res: Response,
-  ): Promise<TokenResponse> {
-    const { refreshToken } = request;
-
-    try {
-      const payload = this.jwtService.verify(refreshToken, {
-        secret: this.configService.get('JWT_REFRESH_SECRET'),
-      });
-
-      const storedToken = await this.prisma.refreshToken.findFirst({
-        where: {
-          token: refreshToken,
-          userId: payload.sub,
-          expiresAt: {
-            gt: new Date(),
-          },
-        },
-        include: {
-          user: true,
-        },
-      });
-
-      if (!storedToken) {
-        throw new HttpException('Invalid refresh token', 401);
-      }
-
-      const newPayload = {
-        sub: payload.sub,
-        email: payload.email,
-        name: payload.name,
-        roles: [storedToken.user.role],
-      };
-
-      const accessToken = this.jwtService.sign(newPayload);
-      const newRefreshToken = this.jwtService.sign(newPayload, {
-        expiresIn: this.configService.get('JWT_REFRESH_EXPIRATION'),
-        secret: this.configService.get('JWT_REFRESH_SECRET'),
-      });
-
-      await this.prisma.refreshToken.delete({
-        where: {
-          id: storedToken.id,
-        },
-      });
-
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-
-      await this.prisma.refreshToken.create({
-        data: {
-          token: newRefreshToken,
-          userId: payload.sub,
-          expiresAt: expiresAt,
-        },
-      });
-
-      res.cookie('accessToken', accessToken, {
-        httpOnly: true,
-        secure: this.configService.get('NODE_ENV') === 'production',
-        sameSite: 'strict',
-        maxAge: 15 * 60 * 1000,
-      });
-
-      res.cookie('refreshToken', refreshToken, {
-        httpOnly: true,
-        secure: this.configService.get('NODE_ENV') === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
-
-      return {
-        accessToken,
-        refreshToken: newRefreshToken,
-        expiresIn: 900,
-        user: {
-          id: storedToken.user.id,
-          name: storedToken.user.name,
-          email: storedToken.user.email,
-          role: storedToken.user.role,
-        },
-      };
-    } catch (error) {
-      throw new HttpException('Invalid refresh token', 401);
-    }
-  }
-
   async logout(res: Response): Promise<{ message: string }> {
     res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
-
     return {
       message: 'Logged out successfully',
     };
@@ -294,5 +183,25 @@ export class UserService {
     return {
       message: 'Email verified successfully. You can now log in.',
     };
+  }
+
+  // Optional: Method to get current user from JWT
+  async getCurrentUser(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isVerified: true,
+      },
+    });
+
+    if (!user) {
+      throw new HttpException('User not found', 404);
+    }
+
+    return user;
   }
 }

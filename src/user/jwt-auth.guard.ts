@@ -18,6 +18,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
+
     const token =
       this.extractTokenFromCookies(request) ||
       this.extractTokenFromHeader(request);
@@ -30,6 +31,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       const payload = this.jwtService.verify(token, {
         secret: this.configService.get<string>('JWT_SECRET'),
       });
+
 
       request.user = payload;
       return true;

@@ -1,8 +1,9 @@
-import { Body, Controller, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { UserService } from './user.service';
-import { LoginRequest, RefreshTokenRequest, UserRegistrationRequest } from 'src/model/user.model';
+import { LoginRequest, UserRegistrationRequest, UserVerificationRequest } from 'src/model/user.model';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { CurrentUser } from './decorator/current-user.decorator';
 
 @Controller('/api/user')
 export class UserController {
@@ -21,17 +22,23 @@ export class UserController {
     return this.userService.login(request, res);
   }
 
-  @Post("/logout")
+  @Post('/logout')
   @UseGuards(JwtAuthGuard)
   async logout(@Res({ passthrough: true }) res: Response) {
     return this.userService.logout(res);
   }
 
-  @Post('/refresh')
-  async refreshToken(
-    @Body() request: RefreshTokenRequest  ,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    return this.userService.refreshToken(request, res);
+  @Post('/verify-email')
+  async verifyEmail(@Body() request: UserVerificationRequest) {
+    return this.userService.verifyEmail(request);
+  }
+
+  // Get current user profile - requires authentication
+  @Get('/profile')
+  @UseGuards(JwtAuthGuard)
+  async getProfile(@CurrentUser() user: any) {
+    // user object from JWT payload
+    const userId = user.id;
+    return this.userService.getCurrentUser(userId);
   }
 }
