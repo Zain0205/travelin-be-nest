@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UploadedFiles,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
 import { HotelService } from './hotel.service';
 import { JwtAuthGuard } from 'src/user/jwt-auth.guard';
 import { RolesGuard } from 'src/user/roles.guard';
@@ -23,7 +36,7 @@ export class HotelController {
     ]),
   )
   async create(
-    @CurrentUser() user: { id: number; role: Role },
+    @CurrentUser() user: any,
     @Body() request: any,
     @UploadedFiles()
     files: {
@@ -48,15 +61,18 @@ export class HotelController {
       pricePerNight: parseFloat(request.pricePerNight),
     };
 
-    return this.hotelService.createHotel(user.id, hotelData);
+    return this.hotelService.createHotel(user.sub, hotelData);
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async getAllHotels(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('name') name?: string,
     @Query('location') location?: string,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
   ) {
     const pagination: Pagination = {
       page: page ? parseInt(page) : 1,
@@ -66,6 +82,8 @@ export class HotelController {
     const filters = {
       name,
       location,
+      minPrice: minPrice ? parseFloat(minPrice) : undefined,
+      maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
     };
 
     return this.hotelService.getAllHotels(pagination, filters);
@@ -78,7 +96,7 @@ export class HotelController {
 
   @Patch('/update/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.agent, Role.admin)
+  @Roles('agent', 'admin')
   @UseInterceptors(
     FileFieldsUploadInterceptor([
       { name: 'thumbnail', maxCount: 1 },
@@ -86,7 +104,7 @@ export class HotelController {
     ]),
   )
   async update(
-    @CurrentUser() user: { id: number; role: Role },
+    @CurrentUser() user: any,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateHotelDto: any,
     @UploadedFiles()
@@ -95,8 +113,8 @@ export class HotelController {
       hotelImages?: Express.Multer.File[];
     },
   ) {
-    const agentId = user.id;
-    
+    const agentId = user.sub;
+
     const thumbnail = files.thumbnail?.[0];
     const hotelImages = files.hotelImages || [];
 
@@ -124,10 +142,10 @@ export class HotelController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.admin, Role.agent)
   async delete(
-    @CurrentUser() user: { id: number; role: Role },
+    @CurrentUser() user: any,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    const agentId = user.id;
+    const agentId = user.sub;
     return this.hotelService.deleteHotel(id, agentId);
   }
 }

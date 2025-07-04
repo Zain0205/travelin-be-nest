@@ -15,13 +15,15 @@ export class HotelService {
     private validationService: ValidationService,
   ) {}
 
-  async createHotel(agentId: number, request: CreateHotel) {
-    const data = this.validationService.validate(
-      HotelValidation.CREATE,
-      request,
-    );
+  async createHotel(agentId: number, data: CreateHotel) {
+    // const data = this.validationService.validate(
+    //   HotelValidation.CREATE,
+    //   request,
+    // );
 
     const { images, ...hotelData } = data;
+
+    console.log(hotelData);
 
     return this.prisma.$transaction(async (prisma) => {
       const newHotel = await prisma.hotel.create({
@@ -79,6 +81,19 @@ export class HotelService {
       whereClause.location = {
         contains: filters.location,
       };
+    }
+
+    // Filter berdasarkan harga
+    if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+      whereClause.pricePerNight = {};
+
+      if (filters.minPrice !== undefined) {
+        whereClause.pricePerNight.gte = filters.minPrice;
+      }
+
+      if (filters.maxPrice !== undefined) {
+        whereClause.pricePerNight.lte = filters.maxPrice;
+      }
     }
 
     const [data, total] = await Promise.all([
