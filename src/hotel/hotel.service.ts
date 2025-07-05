@@ -65,7 +65,7 @@ export class HotelService {
     });
   }
 
-  async getAllHotels(pagination: Pagination, filters: any) {
+  async getAllHotels(pagination: Pagination, filters: any, agentId?: number) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
 
@@ -83,7 +83,6 @@ export class HotelService {
       };
     }
 
-    // Filter berdasarkan harga
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
       whereClause.pricePerNight = {};
 
@@ -100,7 +99,10 @@ export class HotelService {
       this.prisma.hotel.findMany({
         skip,
         take: limit,
-        where: whereClause,
+        where: {
+          ...whereClause,
+          agentId: agentId ? agentId : undefined, // Only filter by agentId if provided
+        },
         include: {
           agent: {
             select: {

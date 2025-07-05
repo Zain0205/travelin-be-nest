@@ -19,12 +19,14 @@ export class BookingService {
   constructor(
     private prisma: PrismaService,
     private notificationService: NotificationService,
-    private notificationGateway: NotificationGateway
-  ) { }
+    private notificationGateway: NotificationGateway,
+  ) {}
 
   async createBooking(data: BookingInput, userId: number) {
     let totalPrice = 0;
     let booking: any;
+    console.log("service")
+    console.log(data)
 
     switch (data.type) {
       case BookingType.package:
@@ -43,24 +45,28 @@ export class BookingService {
         throw new BadRequestException('Invalid booking type');
     }
 
-    const notification = this.notificationService.notifyBookingCreated(userId, booking.id)
+    const notification = this.notificationService.notifyBookingCreated(
+      userId,
+      booking.id,
+    );
 
     await this.notificationGateway.sendNotifToUser(userId, {
       ...notification,
       booking: {
         id: booking.id,
         type: booking.type,
-        totalPrice: booking.totalPrice
-      }
-    })
+        totalPrice: booking.totalPrice,
+      },
+    });
 
     return booking;
   }
 
   private async createPackageBooking(
-    data: BookingInput & { type: 'package' },
+    data: any & { type: 'package' },
     userId: number,
   ) {
+    console.log(data)
     const travelPackage = await this.prisma.travelPackage.findUnique({
       where: { id: data.packageId },
     });
@@ -137,7 +143,7 @@ export class BookingService {
     const booking = await this.prisma.booking.create({
       data: {
         userId,
-        travelDate: data.travelDate,
+        travelDate: data.hotels[0].checkInDate,
         totalPrice,
         status: 'pending',
         paymentStatus: 'unpaid',
@@ -476,7 +482,12 @@ export class BookingService {
     return booking;
   }
 
-  async updateBookingStatus(id: number, status: BookingStatus, userId: number, role: string) {
+  async updateBookingStatus(
+    id: number,
+    status: BookingStatus,
+    userId: number,
+    role: string,
+  ) {
     let notification: any;
     const booking = await this.getBookingById(id, userId, role);
 
@@ -492,20 +503,26 @@ export class BookingService {
       }
 
       if (!isAgentBooking) {
-        const hasHotelFromAgent = booking.bookingHotels?.some(bh => bh.hotel.agentId === userId);
-        const hasFlightFromAgent = booking.bookingFlights?.some(bf => bf.flight.agentId === userId);
+        const hasHotelFromAgent = booking.bookingHotels?.some(
+          (bh) => bh.hotel.agentId === userId,
+        );
+        const hasFlightFromAgent = booking.bookingFlights?.some(
+          (bf) => bf.flight.agentId === userId,
+        );
 
         if (!hasHotelFromAgent && !hasFlightFromAgent) {
-          throw new BadRequestException('You can only update bookings for your packages/hotels/flights');
+          throw new BadRequestException(
+            'You can only update bookings for your packages/hotels/flights',
+          );
         }
       }
     }
 
-    if (role === 'customer' && status !== "rejected") {
+    if (role === 'customer' && status !== 'rejected') {
       throw new BadRequestException('Customers can only cancel their bookings');
     }
 
-    if (status === "rejected" && booking.paymentStatus === "paid") {
+    if (status === 'rejected' && booking.paymentStatus === 'paid') {
       if (booking.packageId) {
         await this.prisma.travelPackage.update({
           where: { id: booking.packageId },
@@ -534,9 +551,15 @@ export class BookingService {
     });
 
     if (status === 'confirmed') {
-      notification = await this.notificationService.notifyBookingConfirmed(updatedBooking.id, id)
+      notification = await this.notificationService.notifyBookingConfirmed(
+        updatedBooking.id,
+        id,
+      );
     } else {
-      notification = await this.notificationService.notifyBookingRejected(updatedBooking.id, id)
+      notification = await this.notificationService.notifyBookingRejected(
+        updatedBooking.id,
+        id,
+      );
     }
 
     if (notification) {
@@ -689,7 +712,7 @@ export class BookingService {
     return {
       success: true,
       status: newStatus,
-      bookingStatus
-    }
+      bookingStatus,
+    };
   }
 }

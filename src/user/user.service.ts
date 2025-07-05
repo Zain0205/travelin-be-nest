@@ -128,7 +128,7 @@ export class UserService {
     });
 
     res.cookie('accessToken', accessToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure: false,
       sameSite: 'lax',
       maxAge: cookieExpiration,

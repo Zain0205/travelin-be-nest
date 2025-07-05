@@ -17,11 +17,11 @@ export class TravelPackageService {
     private validationService: ValidationService,
   ) {}
 
-  async createTravelPackage(agentId: number, request: CreateTravelPackage) {
-    const data = this.validationService.validate(
-      TravelPackageValidation.CREATE,
-      request,
-    );
+  async createTravelPackage(agentId: number, data: CreateTravelPackage) {
+    // const data = this.validationService.validate(
+    //   TravelPackageValidation.CREATE,
+    //   request,
+    // );
     const { images, ...packageData } = data;
 
     return this.prisma.$transaction(async (prisma) => {
@@ -183,7 +183,6 @@ export class TravelPackageService {
     agentId: number,
     updateData: Partial<CreateTravelPackage>,
   ) {
-    // Validate the travel package exists and belongs to the agent
     const existingPackage = await this.prisma.travelPackage.findUnique({
       where: { id },
       include: { images: true },
@@ -200,13 +199,7 @@ export class TravelPackageService {
       );
     }
 
-    // Validate the update data
-    const validatedData = this.validationService.validate(
-      TravelPackageValidation.UPDATE,
-      updateData,
-    );
-
-    const { images, ...packageData } = validatedData;
+    const { images, ...packageData } = updateData;
 
     return this.prisma.$transaction(async (prisma) => {
       // Update travel package data

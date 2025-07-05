@@ -67,6 +67,7 @@ export class HotelController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   async getAllHotels(
+    @CurrentUser() user: any,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('name') name?: string,
@@ -86,7 +87,9 @@ export class HotelController {
       maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
     };
 
-    return this.hotelService.getAllHotels(pagination, filters);
+    const agentId = user.role === "agent" ? user.sub : undefined;
+
+    return this.hotelService.getAllHotels(pagination, filters, agentId);
   }
 
   @Get('/:id')

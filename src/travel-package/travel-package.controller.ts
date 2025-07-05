@@ -42,7 +42,7 @@ export class TravelPackageController {
     ]),
   )
   async create(
-    @CurrentUser() user: { id: number; role: Role },
+    @CurrentUser() user: any,
     @Body() request: any,
     @UploadedFiles()
     files: {
@@ -71,7 +71,9 @@ export class TravelPackageController {
       endDate: new Date(request.endDate),
     };
 
-    return this.travelPackageService.createTravelPackage(user.id, packageData);
+    console.log(packageData);
+
+    return this.travelPackageService.createTravelPackage(user.sub, packageData);
   }
 
   @Get()
@@ -115,7 +117,7 @@ export class TravelPackageController {
 
   @Patch('/update/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.agent, Role.admin)
+  @Roles('admin', 'agent')
   @UseInterceptors(
     FileFieldsUploadInterceptor([
       { name: 'thumbnail', maxCount: 1 },
@@ -123,25 +125,67 @@ export class TravelPackageController {
     ]),
   )
   async update(
+    @CurrentUser() user: any,
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: Request,
     @Body() updatePackageDto: any,
     @UploadedFiles()
     files: {
       thumbnail?: Express.Multer.File[];
       packageImages?: Express.Multer.File[];
     },
-  ) {}
+  ) {
+    const thumbnail = files.thumbnail?.[0];
+    const packageImages = files.packageImages || [];
+
+    const thumbnailUrl = thumbnail
+      ? `uploads/${thumbnail.filename}`
+      : undefined;
+
+    const images =
+      packageImages.length > 0
+        ? packageImages.map((file) => ({
+            fileUrl: `uploads/${file.filename}`,
+            type: 'PACKAGE_IMAGE',
+          }))
+        : undefined;
+
+    const updateData = {
+      ...updatePackageDto,
+      ...(thumbnailUrl && { thumbnail: thumbnailUrl }),
+      ...(images && { images: images }),
+      ...(updatePackageDto.price && {
+        price: parseFloat(updatePackageDto.price),
+      }),
+      ...(updatePackageDto.duration && {
+        duration: parseInt(updatePackageDto.duration),
+      }),
+      ...(updatePackageDto.quota && {
+        quota: parseInt(updatePackageDto.quota),
+      }),
+      ...(updatePackageDto.startDate && {
+        startDate: new Date(updatePackageDto.startDate),
+      }),
+      ...(updatePackageDto.endDate && {
+        endDate: new Date(updatePackageDto.endDate),
+      }),
+    };
+
+    return this.travelPackageService.updateTravelPackage(
+      id,
+      user.sub,
+      updateData,
+    );
+  }
 
   @Delete('/delete/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.admin, Role.agent)
   async delete(
-    @CurrentUser() user: { id: number; role: Role },
+    @CurrentUser() user: any,
     @Param('id', ParseIntPipe) id: number,
     @Req() req: Request,
   ) {
-    const agentId = user.id;
+    const agentId = user.sub;
     return this.travelPackageService.deleteTravelPackage(id, agentId);
   }
 }

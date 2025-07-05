@@ -36,35 +36,36 @@ export class BookingController {
 
   @Post('/create')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('customer')
+  @Roles('customer', "agent")
   async createBooking(
-    @Body() body: any,
-    @CurrentUser() user: { id: number; role: Role },
+    @Body() data: any,
+    @CurrentUser() user: any,
   ) {
-    const data = this.validationService.validate(CreateBookingValidation, body);
 
-    let bookingData: BookingInput;
+    let bookingData: any;
+    console.log(data)
+    console.log("Controller")
 
     switch (data.type) {
       case "package":
-        if (typeof data.packageId !== 'number') {
+        if (typeof data.packages[0].packageId !== 'number') {
           throw new BadRequestException('packageId is required for package bookings');
         }
 
         bookingData = {
-          userId: user.id,
-          travelDate: new Date(data.travelDate),
+          userId: user.sub,
+          travelDate: new Date(data.packages[0].travelDate),
           type: 'package',
-          packageId: data.packageId,
+          packageId: data.packages[0].packageId,
         };
         break;
 
       case 'hotel':
         bookingData = {
-          userId: user.id,
-          travelDate: new Date(data.travelDate),
+          userId: user.sub,
           type: 'hotel',
-          hotels: (data.hotelBookings ?? []).map((item) => ({
+          travelDate: data.checkInDate,
+          hotels: (data.hotels ?? []).map((item: any) => ({
             hotelId: item.hotelId,
             checkInDate: new Date(item.checkInDate),
             checkOutDate: new Date(item.checkOutDate),
@@ -75,7 +76,7 @@ export class BookingController {
 
       case 'flight':
         bookingData = {
-          userId: user.id,
+          userId: user.sub,
           travelDate: new Date(data.travelDate),
           type: 'flight',
           flights: data.flightBookings ?? [],
@@ -101,7 +102,7 @@ export class BookingController {
         throw new BadRequestException('Invalid booking type');
     }
 
-    return this.bookingService.createBooking(bookingData, user.id);
+    return this.bookingService.createBooking(bookingData, user.sub);
 
   }
 
@@ -152,9 +153,8 @@ export class BookingController {
   @Post('reschedule')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('customer')
-  async requestReschedule(@Body() body: any, @CurrentUser() user: { id: number, role: Role }) {
-    // const data = this.validationService.validate(RescheduleSchema, body);
-    return this.bookingService.requestReschedule(body, user.id);
+  async requestReschedule(@Body() body: any, @CurrentUser() user: any) {
+    return this.bookingService.requestReschedule(body, user.sub);
   }
 
   @Put('reschedule/:id/approve')

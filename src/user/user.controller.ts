@@ -38,7 +38,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   async getProfile(@CurrentUser() user: any) {
     // user object from JWT payload
-    const userId = user.id;
+    const userId = user.sub;
     return this.userService.getCurrentUser(userId);
   }
 }
