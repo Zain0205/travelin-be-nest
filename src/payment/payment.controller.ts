@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, HttpCode, HttpStatus, Post, UseGuards, ParseIntPipe } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  HttpCode,
+  HttpStatus,
+  Post,
+  UseGuards,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from 'src/user/jwt-auth.guard';
 import { RolesGuard } from 'src/user/roles.guard';
@@ -10,17 +20,16 @@ import { CreatePaymentValidation } from 'src/booking/booking.validation';
 
 @Controller('/api/payment')
 export class PaymentController {
-  constructor(private paymentService: PaymentService, private validationService: ValidationService) { }
+  constructor(
+    private paymentService: PaymentService,
+    private validationService: ValidationService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('customer')
-  async processPayment(
-    @Body() body: any,
-    @CurrentUser() user: { id: number; role: Role },
-  ) {
-    const data = this.validationService.validate(CreatePaymentValidation, body)
-    return this.paymentService.processPayment(data, user.id);
+  async processPayment(@Body() data: any, @CurrentUser() user: any) {
+    return this.paymentService.processPayment(data, user.sub);
   }
 
   @Post('/callback')
@@ -32,7 +41,7 @@ export class PaymentController {
 
     return {
       status: 'success',
-      message: 'Callback processed successfully'
+      message: 'Callback processed successfully',
     };
   }
 
@@ -54,9 +63,7 @@ export class PaymentController {
   @Get('/history')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('customer')
-  async getPaymentHistory(
-    @CurrentUser() user: { id: number; role: Role },
-  ) {
+  async getPaymentHistory(@CurrentUser() user: { id: number; role: Role }) {
     return this.paymentService.getPaymentHistory(user.id);
   }
 
@@ -77,16 +84,11 @@ export class PaymentController {
   @Roles('customer')
   async retryPayment(
     @Param('bookingId', ParseIntPipe) bookingId: number,
-    @Body() body: any,
-    @CurrentUser() user: { id: number; role: Role },
+    @Body() data: any,
+    @CurrentUser() user: any,
   ) {
-    // Validasi data payment
-    const data = this.validationService.validate(CreatePaymentValidation, {
-      ...body,
-      bookingId: bookingId
-    });
 
-    return this.paymentService.processPayment(data, user.id);
+    return this.paymentService.processPayment(data, user.sub) 
   }
 
   // Admin endpoints (optional)
