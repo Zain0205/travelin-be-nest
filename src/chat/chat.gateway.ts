@@ -45,6 +45,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         secret: this.configService.get<string>('JWT_SECRET')
       })
 
+      console.log(payload)
+
       const userId = payload.sub;
       this.connectedUsers.set(userId, socket.id);
       socket.join(`user:${userId}`);
@@ -103,19 +105,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.server.to(`user:${data.message.receiverId}`).emit('messageReceived', chatMessage);
 
-      await this.notificationService.createNotification({
-        userId: data.message.receiverId,
-        message: `New message from ${chatMessage.sender.name}`,
-        type: "chat",
-      });
+      // await this.notificationService.createNotification({
+      //   userId: data.message.receiverId,
+      //   message: `New message from ${chatMessage.sender.name}`,
+      //   type: "chat",
+      // });
 
-      await this.notificationGateway.sendNotifToUser(
-        data.message.receiverId, {
-        message: `New message from ${chatMessage.sender.name}`,
-        type: "chat",
-        senderId: data.senderId,
-        senderName: chatMessage.sender.name,
-      });
+      // await this.notificationGateway.sendNotifToUser(
+      //   data.message.receiverId, {
+      //   message: `New message from ${chatMessage.sender.name}`,
+      //   type: "chat",
+      //   senderId: data.senderId,
+      //   senderName: chatMessage.sender.name,
+      // });
 
       socket.emit('messageSent', {
         success: true,
