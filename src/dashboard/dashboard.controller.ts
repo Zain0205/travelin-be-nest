@@ -18,7 +18,7 @@ export class DashboardController {
   @Get('/agent/statistics')
   @Roles('agent')
   async getAgentStatistics(@CurrentUser() user: any) {
-    return this.dashboardService.getAgentStatistic(user.id);
+    return this.dashboardService.getAgentStatistic(user.sub);
   }
 
   @Get('/agent/monthly-report')
@@ -33,7 +33,7 @@ export class DashboardController {
     ) as MonthlyReportQuery
 
     return this.dashboardService.getAgentMonthlyReport(
-      user.id,
+      user.sub,
       validatedQuery.year,
       validatedQuery.month
     );
@@ -42,7 +42,7 @@ export class DashboardController {
   @Get('/agent/packages')
   @Roles('agent')
   async getAgentPackages(@CurrentUser() user: any) {
-    return this.dashboardService.getAgentPackages(user.id);
+    return this.dashboardService.getAgentPackages(user.sub);
   }
 
   @Get('/admin/statistics')
