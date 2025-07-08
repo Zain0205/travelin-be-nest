@@ -103,21 +103,21 @@ export class BookingController {
     }
 
     return this.bookingService.createBooking(bookingData, user.sub);
-
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('customer', 'agent', 'admin')
   async getBookings(
-    @Query() query: any,
-    @CurrentUser() user: { id: number; role: Role },
+    @Query() data: any,
+    @CurrentUser() user: any,
   ) {
-    const data = this.validationService.validate(BookingQueryValidation as any, query) as any;
     if (user.role === 'customer') {
-      data.userId = user.id as any;
+      data.userId = user.sub as any;
     }
-    return this.bookingService.getBookings(data, user.id, user.role);
+
+
+    return this.bookingService.getBookings(data, user.sub, user.role);
   }
 
   @Get('/:id')
@@ -142,10 +142,13 @@ export class BookingController {
       throw new BadRequestException(`Invalid status value: ${status}`);
     }
 
+    console.log(user)
+    console.log(id)
+
     return this.bookingService.updateBookingStatus(
       id,
       status as BookingStatus,
-      user.id,
+      user.sub,
       user.role,
     );
   }
@@ -192,15 +195,11 @@ export class BookingController {
   @Roles('customer')
   async cancelBooking(
     @Param('id', ParseIntPipe) bookingId: number,
-    @Body() body: any,
-    @CurrentUser() user: { id: number, role: Role },
+    @Body() data: any,
+    @CurrentUser() user: any,
   ) {
-    const data = this.validationService.validate(CancelBookingValidation, {
-      ...body,
-      bookingId
-    })
 
-    return this.refundService.cancelBooking(data, user.id)
+    return this.refundService.cancelBooking(data, user.sub, bookingId)
   }
 
   @Post('/refund')
