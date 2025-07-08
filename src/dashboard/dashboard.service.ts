@@ -86,6 +86,7 @@ export class DashboardService {
       }
     });
 
+
     const monthlyData = new Map<string, {
       totalBookings: number;
       totalRevenue: number;
@@ -110,6 +111,8 @@ export class DashboardService {
       }
 
       const data = monthlyData.get(key)!;
+      console.log('Booking:', booking)
+      // console.log(data)
       data.totalBookings++;
       data.totalRevenue += Number(booking.totalPrice);
 

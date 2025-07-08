@@ -1,4 +1,5 @@
 import { BookingStatus, BookingType, PaymentMethod, PaymentStatus } from '@prisma/client';
+import { Payment } from 'prisma/generated';
 
 interface BookingBase {
   userId: number;

@@ -5,7 +5,13 @@ import {
 } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PrismaService } from 'src/common/prisma.service';
-import { BookingDetails, CancelBookingInput, ProcessRefundInput, RefundInput, RefundQueryInput } from 'src/model/refund.model';
+import {
+  BookingDetails,
+  CancelBookingInput,
+  ProcessRefundInput,
+  RefundInput,
+  RefundQueryInput,
+} from 'src/model/refund.model';
 import { NotificationGateway } from 'src/notification/notification.gateway';
 import { NotificationService } from 'src/notification/notification.service';
 import { MidtransService } from 'src/payment/midtrans.service';
@@ -17,7 +23,7 @@ export class RefundService {
     private notificationService: NotificationService,
     private notificationGateway: NotificationGateway,
     private midtransService: MidtransService,
-  ) { }
+  ) {}
 
   async getBookingDetails(
     bookingId: number,
@@ -225,15 +231,19 @@ export class RefundService {
     };
   }
 
-  async cancelBooking(data: CancelBookingInput, userId: number) {
-    const { bookingId, reason, requestRefund } = data
+  async cancelBooking(
+    data: CancelBookingInput,
+    userId: number,
+    bookingId: number,
+  ) {
+    const { reason, requestRefund } = data;
 
-    const booking = await this.getBookingDetails(bookingId, userId)
+    const booking = await this.getBookingDetails(bookingId, userId);
 
     if (['cancelled', 'refunded'].includes(booking.status)) {
       throw new BadRequestException('Booking sudah dibatalkan sebelumnya');
     }
-
+    
     await this.prisma.booking.update({
       where: { id: bookingId },
       data: {
@@ -243,36 +253,36 @@ export class RefundService {
       },
     });
 
-    await this.restoreQuotas(booking)
+    await this.restoreQuotas(booking);
 
     let refund: any = null;
 
     if (requestRefund && booking.paymentStatus === 'paid') {
       try {
-        refund = await this.requestRefund({ bookingId, reason }, userId)
+        refund = await this.requestRefund({ bookingId, reason }, userId);
       } catch (err) {
-        console.error(err)
+        console.error(err);
       }
     }
 
     const notification = await this.notificationService.notifyBookingCancelled(
       userId,
       bookingId,
-      booking.type
-    )
+      booking.type,
+    );
 
-    await this.notificationGateway.sendNotifToUser(userId, notification)
+    await this.notificationGateway.sendNotifToUser(userId, notification);
 
     return {
       success: true,
-      message: "Booking berhasil dibatalkan",
+      message: 'Booking berhasil dibatalkan',
       booking: { id: bookingId, status: 'Cancelled' },
-      refund: refund?.refund || null
-    }
+      refund: refund?.refund || null,
+    };
   }
 
   async processRefund(data: ProcessRefundInput, adminId: number) {
-    const { refundId, status, refundMethod, refundProof } = data
+    const { refundId, status, refundMethod, refundProof } = data;
 
     const refund = await this.prisma.refund.findUnique({
       where: { id: refundId },
@@ -290,7 +300,7 @@ export class RefundService {
     });
 
     if (!refund) {
-      throw new NotFoundException("Refund request not found")
+      throw new NotFoundException('Refund request not found');
     }
 
     if (refund.status !== 'pending') {
@@ -305,22 +315,25 @@ export class RefundService {
 
     if (status === 'approved') {
       if (!refundMethod) {
-        throw new BadRequestException('Refund method harus diisi')
+        throw new BadRequestException('Refund method harus diisi');
       }
-      updatedData.refundMethod = refundMethod
-      updatedData.refundProof = refundProof
+      updatedData.refundMethod = refundMethod;
+      updatedData.refundProof = refundProof;
 
       await this.prisma.booking.update({
         where: { id: refund.bookingId },
-        data: { status: 'refunded' }
+        data: { status: 'refunded' },
       });
 
       if (refund.booking.payments.length > 0) {
         try {
           const orderId = `BOOKING-${refund.bookingId}`;
-          await this.midtransService.refundTransaction(orderId, Number(refund.amount));
+          await this.midtransService.refundTransaction(
+            orderId,
+            Number(refund.amount),
+          );
         } catch (err) {
-          console.error(`Error processing midtrans refund`)
+          console.error(`Error processing midtrans refund`);
         }
       }
     }
@@ -349,17 +362,18 @@ export class RefundService {
       bookingType = 'flight';
     }
 
-    const notification = status === 'approved'
-      ? await this.notificationService.notifyRefundApproved(
-        refund.userId,
-        refund.bookingId,
-        bookingType,
-      )
-      : await this.notificationService.notifyRefundRejected(
-        refund.userId,
-        refund.bookingId,
-        bookingType,
-      );
+    const notification =
+      status === 'approved'
+        ? await this.notificationService.notifyRefundApproved(
+            refund.userId,
+            refund.bookingId,
+            bookingType,
+          )
+        : await this.notificationService.notifyRefundRejected(
+            refund.userId,
+            refund.bookingId,
+            bookingType,
+          );
 
     await this.notificationGateway.sendNotifToUser(refund.userId, {
       ...notification,
@@ -382,8 +396,19 @@ export class RefundService {
     };
   }
 
-  async getRefunds(query: RefundQueryInput, userId?: number, userRole?: string) {
-    const { status, bookingType, page = 1, limit = 10, startDate, endDate } = query;
+  async getRefunds(
+    query: RefundQueryInput,
+    userId?: number,
+    userRole?: string,
+  ) {
+    const {
+      status,
+      bookingType,
+      page = 1,
+      limit = 10,
+      startDate,
+      endDate,
+    } = query;
     const skip = (page - 1) * limit;
 
     const whereClause: any = {};
@@ -436,7 +461,7 @@ export class RefundService {
       this.prisma.refund.count({ where: whereClause }),
     ]);
 
-    const formattedRefunds = refunds.map(refund => ({
+    const formattedRefunds = refunds.map((refund) => ({
       ...refund,
       amount: Number(refund.amount),
       originalAmount: Number(refund.originalAmount),

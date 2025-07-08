@@ -399,13 +399,18 @@ export class BookingService {
               hotel: true,
             },
           },
+          bookingFlights: {
+            include: {
+              flight: true
+            }
+          },
           payments: true,
         },
         orderBy: {
           bookingDate: 'desc',
         },
         skip,
-        take: limit,
+        take: 10,
       }),
 
       this.prisma.booking.count({ where: whereClause }),
@@ -549,16 +554,20 @@ export class BookingService {
         },
       },
     });
+    console.log("TEEESSSSTTTT")
+    console.log(id)
+    console.log(updatedBooking.id)
+    console.log("ENNNDDDD")
 
     if (status === 'confirmed') {
       notification = await this.notificationService.notifyBookingConfirmed(
+        userId,
         updatedBooking.id,
-        id,
       );
     } else {
       notification = await this.notificationService.notifyBookingRejected(
+        userId,
         updatedBooking.id,
-        id,
       );
     }
 

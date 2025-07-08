@@ -24,6 +24,7 @@ export class PaymentService {
 
   async processPayment(data: PaymentInput, userId: number) {
     const { bookingId, method, amount } = data;
+    console.log(data)
 
     const booking = await this.prisma.booking.findFirst({
       where: {
@@ -105,7 +106,7 @@ export class PaymentService {
             quantity: 1,
           },
         ],
-        callbackUrl: `${this.configService.get<string>('BACKEND_URL')}/api/payment/callback`,
+        callbackUrl: `${this.configService.get<string>('FRONTEND_URL')}/payment/callback`,
       });
 
       const payment = await this.prisma.payment.create({
@@ -113,8 +114,7 @@ export class PaymentService {
           bookingId,
           method,
           amount,
-          paymentDate: null,
-          proofUrl: data.proofUrl || null,
+          paymentDate: new Date,
         },
       });
 
