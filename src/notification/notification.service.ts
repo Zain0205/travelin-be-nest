@@ -9,6 +9,7 @@ export class NotificationService {
 
   async createNotification(data: CreateNotification) {
     const { userId, message, type, isRead } = data
+    console.log(userId)
     const notification = this.prisma.notification.create({
       data: {
         userId,
