@@ -3,6 +3,7 @@ export class UserRegistrationRequest {
   email: string;
   password: string;
   role: string;
+  phone?: string;
 }
 
 export class UserVerificationRequest {

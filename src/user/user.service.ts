@@ -38,6 +38,8 @@ export class UserService {
       request,
     );
 
+    console.log(registerRequest);
+
     const totalUser = await this.prisma.user.count({
       where: {
         email: registerRequest.email,
@@ -58,6 +60,7 @@ export class UserService {
       data: {
         name: registerRequest.name,
         email: registerRequest.email,
+        phone: request.phone,
         password: request.password,
         role: registerRequest.role,
         verificationToken: verificationToken,
@@ -119,9 +122,9 @@ export class UserService {
 
     // Set token expiration based on rememberMe option
     const tokenExpiration = rememberMe ? '30d' : '7d';
-    const cookieExpiration = rememberMe 
-      ? 30 * 24 * 60 * 60 * 1000  // 30 days
-      : 7 * 24 * 60 * 60 * 1000;  // 7 days
+    const cookieExpiration = rememberMe
+      ? 30 * 24 * 60 * 60 * 1000 // 30 days
+      : 7 * 24 * 60 * 60 * 1000; // 7 days
 
     const accessToken = this.jwtService.sign(payload, {
       expiresIn: tokenExpiration,
@@ -203,5 +206,59 @@ export class UserService {
     }
 
     return user;
+  }
+
+  // New method to get all users with agent role
+  async getAllAgents() {
+    const agents = await this.prisma.user.findMany({
+      where: {
+        role: 'agent',
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        createdAt: true,
+        isVerified: true,
+        // Include related data if needed
+        travelPackages: {
+          select: {
+            id: true,
+            title: true,
+            location: true,
+            price: true,
+          },
+        },
+        hotels: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            pricePerNight: true,
+          },
+        },
+        flights: {
+          select: {
+            id: true,
+            airlineName: true,
+            origin: true,
+            destination: true,
+            price: true,
+          },
+        },
+        bookings: true,
+        reviews: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return {
+      data: agents,
+      total: agents.length,
+    };
   }
 }

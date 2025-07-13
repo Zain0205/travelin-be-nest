@@ -41,4 +41,10 @@ export class UserController {
     const userId = user.sub;
     return this.userService.getCurrentUser(userId);
   }
+
+  // Get all users with agent role
+  @Get('/agents')
+  async getAllAgents() {
+    return this.userService.getAllAgents();
+  }
 }
