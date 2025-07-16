@@ -188,7 +188,6 @@ export class UserService {
     };
   }
 
-  // Optional: Method to get current user from JWT
   async getCurrentUser(userId: number) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

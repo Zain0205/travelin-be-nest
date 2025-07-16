@@ -17,7 +17,7 @@ export class ReviewsController {
   ) {
     return {
       message: 'Review created successfully',
-      data: await this.reviewService.createPackageReviews(user.id, packageId, request),
+      data: await this.reviewService.createPackageReviews(user.sub, packageId, request),
     };
   }
 
@@ -27,9 +27,10 @@ export class ReviewsController {
     @Param('hotelId', ParseIntPipe) hotelId: number,
     @Body() request: CreateReviewRequest,
   ) {
+
     return {
       message: 'Review created successfully',
-      data: await this.reviewService.createHotelReviews(user.id, hotelId, request),
+      data: await this.reviewService.createHotelReviews(user.sub, hotelId, request),
     };
   }
 
@@ -41,7 +42,7 @@ export class ReviewsController {
   ) {
     return {
       message: 'Review created successfully',
-      data: await this.reviewService.createFlightReviews(user.id, flightId, request),
+      data: await this.reviewService.createFlightReviews(user.sub, flightId, request),
     };
   }
 

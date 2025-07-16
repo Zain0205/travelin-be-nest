@@ -116,8 +116,9 @@ export class BookingController {
       data.userId = user.sub as any;
     }
 
+    const userId = user.role === 'admin' ? undefined : user.sub;
 
-    return this.bookingService.getBookings(data, user.sub, user.role);
+    return this.bookingService.getBookings(data, userId, user.role);
   }
 
   @Get('/:id')

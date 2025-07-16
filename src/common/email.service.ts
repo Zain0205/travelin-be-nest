@@ -21,7 +21,7 @@ export class EmailService {
     name: string,
     token: string,
   ): Promise<void> {
-    const verificationUrl = `${process.env.APP_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
+    const verificationUrl = `${process.env.APP_URL || 'http://localhost:5173'}/verification/${token}`;
 
     await this.transporter.sendMail({
       from: process.env.EMAIL_USER || '"Be Travelin" <noreply@betravelin.com>',

@@ -20,12 +20,8 @@ export class ReviewsService {
   async createPackageReviews(
     userId: number,
     packageId: number,
-    request: CreateReviewRequest,
+    validatedRequest: CreateReviewRequest,
   ): Promise<ReviewResponse> {
-    const validatedRequest = this.validationService.validate(
-      CreateReviewSchema,
-      request,
-    );
 
     const travelPackage = this.prisma.travelPackage.findUnique({
       where: { id: packageId },
@@ -87,12 +83,8 @@ export class ReviewsService {
   async createHotelReviews(
     userId: number,
     hotelId: number,
-    request: CreateReviewRequest,
+    validatedRequest: CreateReviewRequest,
   ): Promise<ReviewResponse> {
-    const validatedRequest = this.validationService.validate(
-      CreateReviewSchema,
-      request,
-    );
 
     const hotel = await this.prisma.hotel.findUnique({
       where: { id: hotelId },
@@ -147,9 +139,8 @@ export class ReviewsService {
   async createFlightReviews(
     userId: number,
     flightId: number,
-    request: CreateReviewRequest
+    validatedRequest: CreateReviewRequest
   ): Promise<ReviewResponse> {
-    const validatedRequest = this.validationService.validate(CreateReviewSchema, request);
 
     const flight = await this.prisma.flight.findUnique({
       where: { id: flightId },
