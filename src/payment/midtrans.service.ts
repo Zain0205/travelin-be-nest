@@ -14,13 +14,13 @@ export class MidtransService {
       this.configService.get<string>('NODE_ENV') === 'production';
 
     this.snap = new Snap({
-      isProduction: isProduction,
+      isProduction: false,
       serverKey: this.configService.get<string>('MIDTRANS_SERVER_KEY'),
       clientKey: this.configService.get<string>('MIDTRANS_CLIENT_KEY'),
     });
 
     this.coreApi = new CoreApi({
-      isProduction: isProduction,
+      isProduction: false,
       serverKey: this.configService.get<string>('MIDTRANS_SERVER_KEY'),
       clientKey: this.configService.get<string>('MIDTRANS_CLIENT_KEY'),
     });
