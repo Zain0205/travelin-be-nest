@@ -55,7 +55,7 @@ export interface PaymentInput {
 }
 
 export interface GetBookingsQuery {
-  status?: BookingStatus;
+  status?: string;
   paymentStatus?: PaymentStatus;
   type?: BookingType;
   startDate?: Date;
